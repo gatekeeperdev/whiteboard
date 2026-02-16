@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whiteboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    header p {
+      color: #888;
+      margin-top: .4rem;
+      font-size: .95rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Section panels */
+    .panel {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .75rem;
+    }
+
+    .panel-title {
+      font-size: .8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: .45rem .9rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+      color: #e0e0e0;
+      background: #333;
+    }
+
+    .btn:hover { background: #3a3a3a; }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #5865F2;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #4752c4; }
+
+    .btn-danger {
+      background: #333;
+      color: #e55;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: #3a3a3a; }
+
+    .btn-small {
+      padding: .3rem .6rem;
+      font-size: .78rem;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: #222;
+      border: 1px solid #333;
+      color: #ccc;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+
+    .btn-icon:hover {
+      background: #2a2a2a;
+      border-color: #5865F2;
+      color: #fff;
+    }
+
+    .btn-icon.active {
+      background: #5865F2;
+      border-color: #5865F2;
+      color: #fff;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      align-items: center;
+      padding: .6rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      background: #333;
+      margin: 0 .2rem;
+      align-self: stretch;
+      min-height: 24px;
+    }
+
+    .toolbar-label {
+      font-size: .72rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      margin-right: .2rem;
+    }
+
+    /* Color swatches */
+    .color-swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid #333;
+      cursor: pointer;
+      transition: border-color .15s, transform .15s;
+      flex-shrink: 0;
+    }
+
+    .color-swatch:hover {
+      border-color: #888;
+      transform: scale(1.1);
+    }
+
+    .color-swatch.active {
+      border-color: #fff;
+      transform: scale(1.15);
+      box-shadow: 0 0 0 2px #5865F2;
+    }
+
+    /* Custom color input */
+    .color-input-wrap {
+      position: relative;
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .color-input-wrap input[type="color"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .color-input-swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px dashed #555;
+      pointer-events: none;
+      background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    }
+
+    /* Brush size slider */
+    .size-slider {
+      width: 80px;
+      accent-color: #5865F2;
+      cursor: pointer;
+    }
+
+    .size-label {
+      font-size: .75rem;
+      color: #aaa;
+      font-family: "SF Mono", "Fira Code", Menlo, monospace;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    /* Canvas */
+    .canvas-wrap {
+      border: 1px solid #333;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+      cursor: crosshair;
+    }
+
+    .canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      touch-action: none;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: .3rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .35rem .7rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: .82rem;
+      color: #aaa;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      user-select: none;
+    }
+
+    .tab:hover {
+      background: #2a2a2a;
+      border-color: #444;
+      color: #e0e0e0;
+    }
+
+    .tab.active {
+      background: #5865F2;
+      border-color: #5865F2;
+      color: #fff;
+    }
+
+    .tab-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      font-size: .65rem;
+      line-height: 1;
+      background: transparent;
+      color: inherit;
+      border: none;
+      cursor: pointer;
+      opacity: .6;
+      transition: opacity .15s, background .15s;
+    }
+
+    .tab-close:hover {
+      opacity: 1;
+      background: rgba(255,255,255,.15);
+    }
+
+    .tab-add {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+      border: 1px dashed #444;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #666;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+
+    .tab-add:hover {
+      background: #2a2a2a;
+      border-color: #5865F2;
+      color: #5865F2;
+    }
+
+    /* Eraser cursor */
+    .canvas-wrap.eraser-active {
+      cursor: none;
+    }
+
+    .eraser-cursor {
+      position: fixed;
+      pointer-events: none;
+      border: 2px solid #888;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      display: none;
+    }
+
+    .canvas-wrap.eraser-active .eraser-cursor {
+      display: block;
+    }
+
+    /* Toast */
+    .copied-toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #5865F2;
+      color: #fff;
+      padding: .5rem 1.2rem;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      z-index: 100;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Tooltip */
+    [data-tooltip] {
+      position: relative;
+    }
+
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #e0e0e0;
+      padding: .3rem .6rem;
+      border-radius: 4px;
+      font-size: .72rem;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10;
+      border: 1px solid #333;
+    }
+
+    /* Action buttons row */
+    .actions-row {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #444;
+      font-size: .8rem;
+    }
+
+    footer a {
+      color: #5865F2;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .toolbar {
+        gap: .3rem;
+      }
+
+      .size-slider {
+        width: 60px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Whiteboard</h1>
+  <p>Draw, create multiple tabs &amp; export to PNG</p>
+</header>
+
+<div class="container">
+
+  <!-- Tabs panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Whiteboards</span>
+      <div class="actions-row">
+        <button class="btn btn-small btn-primary" id="exportAllBtn">Export All to PNG</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabsBar">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- Drawing area -->
+  <div class="panel" style="padding: 0; border: none; background: none;">
+    <div class="toolbar" id="toolbar">
+      <span class="toolbar-label">Tool</span>
+      <button class="btn-icon active" id="penBtn" data-tooltip="Pen">&#9998;</button>
+      <button class="btn-icon" id="eraserBtn" data-tooltip="Eraser">&#9003;</button>
+      <div class="toolbar-divider"></div>
+      <span class="toolbar-label">Color</span>
+      <div class="color-swatch active" data-color="#000000" style="background:#000000;" data-tooltip="Black"></div>
+      <div class="color-swatch" data-color="#e03131" style="background:#e03131;" data-tooltip="Red"></div>
+      <div class="color-swatch" data-color="#e8590c" style="background:#e8590c;" data-tooltip="Orange"></div>
+      <div class="color-swatch" data-color="#fcc419" style="background:#fcc419;" data-tooltip="Yellow"></div>
+      <div class="color-swatch" data-color="#40c057" style="background:#40c057;" data-tooltip="Green"></div>
+      <div class="color-swatch" data-color="#339af0" style="background:#339af0;" data-tooltip="Blue"></div>
+      <div class="color-swatch" data-color="#7950f2" style="background:#7950f2;" data-tooltip="Purple"></div>
+      <div class="color-swatch" data-color="#ffffff" style="background:#ffffff;" data-tooltip="White"></div>
+      <div class="color-input-wrap" data-tooltip="Custom">
+        <div class="color-input-swatch"></div>
+        <input type="color" id="customColor" value="#5865F2">
+      </div>
+      <div class="toolbar-divider"></div>
+      <span class="toolbar-label">Size</span>
+      <input type="range" class="size-slider" id="brushSize" min="1" max="50" value="3">
+      <span class="size-label" id="sizeLabel">3</span>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" id="undoBtn" data-tooltip="Undo">&#8630;</button>
+      <button class="btn-icon" id="redoBtn" data-tooltip="Redo">&#8631;</button>
+      <div class="toolbar-divider"></div>
+      <button class="btn-icon" id="clearBtn" data-tooltip="Clear" style="color:#e55;">&#10005;</button>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas" width="1060" height="600"></canvas>
+      <div class="eraser-cursor" id="eraserCursor"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="copied-toast" id="toast">Exported!</div>
+
+<footer>
+  Whiteboard &mdash; runs entirely in your browser
+</footer>
+
+<script>
+(function () {
+  // --- State ---
+  var boards = [];
+  var activeIdx = 0;
+  var nextId = 1;
+
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var canvasWrap = document.getElementById('canvasWrap');
+  var tabsBar = document.getElementById('tabsBar');
+  var toast = document.getElementById('toast');
+  var brushSizeInput = document.getElementById('brushSize');
+  var sizeLabel = document.getElementById('sizeLabel');
+  var penBtn = document.getElementById('penBtn');
+  var eraserBtn = document.getElementById('eraserBtn');
+  var undoBtn = document.getElementById('undoBtn');
+  var redoBtn = document.getElementById('redoBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var exportAllBtn = document.getElementById('exportAllBtn');
+  var customColorInput = document.getElementById('customColor');
+  var eraserCursor = document.getElementById('eraserCursor');
+
+  var currentColor = '#000000';
+  var currentSize = 3;
+  var currentTool = 'pen'; // 'pen' or 'eraser'
+  var drawing = false;
+  var lastX = 0;
+  var lastY = 0;
+
+  // --- Board management ---
+  function createBoard(name) {
+    var board = {
+      id: nextId++,
+      name: name || 'Board ' + nextId,
+      undoStack: [],
+      redoStack: [],
+      currentImage: null
+    };
+    // Save initial blank state
+    boards.push(board);
+    return board;
+  }
+
+  function saveCurrentBoard() {
+    if (boards[activeIdx]) {
+      boards[activeIdx].currentImage = canvas.toDataURL();
+    }
+  }
+
+  function loadBoard(idx) {
+    var board = boards[idx];
+    if (!board) return;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (board.currentImage) {
+      var img = new Image();
+      img.onload = function () {
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = board.currentImage;
+    }
+  }
+
+  function switchBoard(idx) {
+    saveCurrentBoard();
+    activeIdx = idx;
+    loadBoard(idx);
+    renderTabs();
+  }
+
+  function pushUndo() {
+    var board = boards[activeIdx];
+    if (!board) return;
+    board.undoStack.push(canvas.toDataURL());
+    board.redoStack = [];
+    // Limit stack
+    if (board.undoStack.length > 50) {
+      board.undoStack.shift();
+    }
+  }
+
+  function undo() {
+    var board = boards[activeIdx];
+    if (!board || board.undoStack.length === 0) return;
+    board.redoStack.push(canvas.toDataURL());
+    var imgData = board.undoStack.pop();
+    var img = new Image();
+    img.onload = function () {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      board.currentImage = canvas.toDataURL();
+    };
+    img.src = imgData;
+  }
+
+  function redo() {
+    var board = boards[activeIdx];
+    if (!board || board.redoStack.length === 0) return;
+    board.undoStack.push(canvas.toDataURL());
+    var imgData = board.redoStack.pop();
+    var img = new Image();
+    img.onload = function () {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      board.currentImage = canvas.toDataURL();
+    };
+    img.src = imgData;
+  }
+
+  // --- Tabs UI ---
+  function renderTabs() {
+    tabsBar.innerHTML = '';
+    boards.forEach(function (board, idx) {
+      var tab = document.createElement('div');
+      tab.className = 'tab' + (idx === activeIdx ? ' active' : '');
+      tab.setAttribute('data-idx', idx);
+
+      var label = document.createElement('span');
+      label.textContent = board.name;
+      label.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        renameTab(idx);
+      });
+      tab.appendChild(label);
+
+      if (boards.length > 1) {
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.innerHTML = '&#10005;';
+        closeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          removeBoard(idx);
+        });
+        tab.appendChild(closeBtn);
+      }
+
+      tab.addEventListener('click', function () {
+        switchBoard(idx);
+      });
+
+      tabsBar.appendChild(tab);
+    });
+
+    // Add tab button
+    var addBtn = document.createElement('button');
+    addBtn.className = 'tab-add';
+    addBtn.innerHTML = '+';
+    addBtn.addEventListener('click', function () {
+      addNewBoard();
+    });
+    tabsBar.appendChild(addBtn);
+  }
+
+  function addNewBoard() {
+    saveCurrentBoard();
+    createBoard('Board ' + nextId);
+    activeIdx = boards.length - 1;
+    // Clear canvas for new board
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    boards[activeIdx].currentImage = canvas.toDataURL();
+    renderTabs();
+  }
+
+  function removeBoard(idx) {
+    if (boards.length <= 1) return;
+    boards.splice(idx, 1);
+    if (activeIdx >= boards.length) {
+      activeIdx = boards.length - 1;
+    } else if (activeIdx > idx) {
+      activeIdx--;
+    } else if (activeIdx === idx) {
+      activeIdx = Math.min(idx, boards.length - 1);
+    }
+    loadBoard(activeIdx);
+    renderTabs();
+  }
+
+  function renameTab(idx) {
+    var name = prompt('Rename whiteboard:', boards[idx].name);
+    if (name && name.trim()) {
+      boards[idx].name = name.trim();
+      renderTabs();
+    }
+  }
+
+  // --- Drawing ---
+  function getCanvasPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    var clientX, clientY;
+
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    pushUndo();
+    var pos = getCanvasPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+
+    // Draw a dot for single clicks
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, currentSize / 2, 0, Math.PI * 2);
+    if (currentTool === 'eraser') {
+      ctx.fillStyle = '#ffffff';
+    } else {
+      ctx.fillStyle = currentColor;
+    }
+    ctx.fill();
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var pos = getCanvasPos(e);
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.lineWidth = currentSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (currentTool === 'eraser') {
+      ctx.strokeStyle = '#ffffff';
+    } else {
+      ctx.strokeStyle = currentColor;
+    }
+
+    ctx.stroke();
+
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function stopDraw() {
+    if (drawing) {
+      drawing = false;
+      saveCurrentBoard();
+    }
+  }
+
+  // Mouse events
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+
+  // Touch events
+  canvas.addEventListener('touchstart', startDraw);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stopDraw);
+  canvas.addEventListener('touchcancel', stopDraw);
+
+  // Eraser cursor tracking
+  canvasWrap.addEventListener('mousemove', function (e) {
+    if (currentTool === 'eraser') {
+      eraserCursor.style.left = e.clientX + 'px';
+      eraserCursor.style.top = e.clientY + 'px';
+      eraserCursor.style.width = currentSize + 'px';
+      eraserCursor.style.height = currentSize + 'px';
+    }
+  });
+
+  // --- Tool selection ---
+  function selectTool(tool) {
+    currentTool = tool;
+    penBtn.classList.toggle('active', tool === 'pen');
+    eraserBtn.classList.toggle('active', tool === 'eraser');
+    canvasWrap.classList.toggle('eraser-active', tool === 'eraser');
+  }
+
+  penBtn.addEventListener('click', function () { selectTool('pen'); });
+  eraserBtn.addEventListener('click', function () { selectTool('eraser'); });
+
+  // --- Color selection ---
+  var swatches = document.querySelectorAll('.color-swatch');
+  swatches.forEach(function (swatch) {
+    swatch.addEventListener('click', function () {
+      swatches.forEach(function (s) { s.classList.remove('active'); });
+      swatch.classList.add('active');
+      currentColor = swatch.dataset.color;
+      selectTool('pen');
+    });
+  });
+
+  customColorInput.addEventListener('input', function () {
+    currentColor = customColorInput.value;
+    swatches.forEach(function (s) { s.classList.remove('active'); });
+    selectTool('pen');
+  });
+
+  // --- Brush size ---
+  brushSizeInput.addEventListener('input', function () {
+    currentSize = parseInt(brushSizeInput.value);
+    sizeLabel.textContent = currentSize;
+  });
+
+  // --- Undo / Redo ---
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      redo();
+    }
+  });
+
+  // --- Clear canvas ---
+  clearBtn.addEventListener('click', function () {
+    if (!confirm('Clear this whiteboard?')) return;
+    pushUndo();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveCurrentBoard();
+  });
+
+  // --- Export all boards to PNG ---
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function () {
+      toast.classList.remove('show');
+    }, 2000);
+  }
+
+  exportAllBtn.addEventListener('click', function () {
+    saveCurrentBoard();
+
+    var exported = 0;
+    boards.forEach(function (board, idx) {
+      if (!board.currentImage) return;
+
+      var link = document.createElement('a');
+      link.download = board.name.replace(/[^a-zA-Z0-9 _-]/g, '') + '.png';
+      link.href = board.currentImage;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      exported++;
+    });
+
+    if (exported > 0) {
+      showToast('Exported ' + exported + ' whiteboard' + (exported > 1 ? 's' : '') + ' to PNG!');
+    }
+  });
+
+  // --- Init ---
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  createBoard('Board 1');
+  boards[0].currentImage = canvas.toDataURL();
+  renderTabs();
+})();
+</script>
+
+</body>
+</html>
