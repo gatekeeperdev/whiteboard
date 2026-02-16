@@ -1,3 +1,3 @@
 # whiteboard
 
-[Try it live](gatekeeperdev.github.io/whiteboard)
+[Try it live](https://gatekeeperdev.github.io/whiteboard)
